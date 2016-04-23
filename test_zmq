@@ -1,0 +1,73 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Declare paths
+ */
+$basePath = realpath(__DIR__ . '/..');
+$dataPath = $basePath . '/surume-data';
+
+/**
+ * Include autoloader & dependencies
+ */
+require $basePath . '/vendor/autoload.php';
+require $dataPath . '/autorun/autorun.php5.polyfill';
+
+/**
+ *
+ */
+use Surume\Channel\Model\Zmq\ZmqDealer;
+use Surume\Channel\Model\Zmq\ZmqRouter;
+use Surume\Loop\Loop;
+use Surume\Loop\Model\StreamSelectLoop;
+
+/**
+ *
+ */
+$alias = $argv[1];
+$root  = 'Router';
+
+$type  = ($alias === $root) ? 1 : 2;
+
+$loop = new Loop(
+    new StreamSelectLoop()
+);
+
+$config = [
+    'id'        => $alias,
+    'endpoint'  => 'tcp://127.0.0.1:2080',
+    'type'      => $type,
+    'hosts'     => $root,
+//    'enableHeartbeat' => false
+];
+
+if ($alias === $root)
+{
+    $zmq = new ZmqRouter(
+        $loop,
+        $config
+    );
+
+    $loop->addPeriodicTimer(1, function() use($zmq) {
+        for ($i=1; $i<=3; $i++)
+        {
+            $zmq->unicast('A' . $i, 'Message to A' . $i);
+        }
+    });
+}
+else
+{
+    $zmq = new ZmqDealer(
+        $loop,
+        $config
+    );
+
+    $zmq->on('recv', function($alias, $message) {
+        var_dump($alias);
+        var_dump($message);
+    });
+}
+
+$zmq->start();
+
+$loop->start();

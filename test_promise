@@ -1,0 +1,28 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Declare paths
+ */
+$basePath = realpath(__DIR__ . '/..');
+$dataPath = $basePath . '/surume-data';
+
+/**
+ * Include autoloader & dependencies
+ */
+require $basePath . '/vendor/autoload.php';
+require $dataPath . '/autorun/autorun.php5.polyfill';
+
+use Surume\Promise\Promise;
+
+$promise = new Promise();
+
+$start = microtime(true);
+for ($i=0; $i<1e5; ++$i)
+{
+    $promise = $promise->then(function() {});
+}
+$promise->resolve();
+$end = microtime(true);
+
+var_dump(($end-$start));

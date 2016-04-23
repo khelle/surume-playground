@@ -1,0 +1,58 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Declare paths
+ */
+$basePath = realpath(__DIR__ . '/..');
+$dataPath = $basePath . '/surume-data';
+
+/**
+ * Include autoloader & dependencies
+ */
+require $basePath . '/vendor/autoload.php';
+require $dataPath . '/autorun/autorun.php5.polyfill';
+
+use Surume\Ipc\Socket\SocketListener;
+use Surume\Loop\Loop;
+use Surume\Loop\Model\StreamSelectLoop;
+use Surume\Transfer\Http\HttpResponse;
+use Surume\Transfer\IoConnectionInterface;
+use Surume\Transfer\IoMessageInterface;
+use Surume\Transfer\IoServer;
+use Surume\Transfer\IoServerComponentInterface;
+
+class HelloWorld implements IoServerComponentInterface
+{
+    public function handleConnect(IoConnectionInterface $conn)
+    {}
+
+    public function handleDisconnect(IoConnectionInterface $conn)
+    {}
+
+    public function handleMessage(IoConnectionInterface $conn, IoMessageInterface $message)
+    {
+        $conn->send(new HttpResponse(200, [], file_get_contents(__DIR__ . '/hello.html')));
+        $conn->close();
+    }
+
+    public function handleError(IoConnectionInterface $conn, $ex)
+    {}
+}
+
+$loop = new Loop(
+    new StreamSelectLoop()
+);
+
+$socket = new SocketListener(
+    'tcp://127.0.0.1:4080',
+    $loop
+);
+
+$io = new IoServer(
+    $socket
+);
+
+$io->addRoute('/', new HelloWorld());
+
+$loop->start();

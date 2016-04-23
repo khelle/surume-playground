@@ -1,0 +1,69 @@
+#!/usr/bin/env php
+<?php
+
+/**
+ * Declare paths
+ */
+$basePath = realpath(__DIR__ . '/..');
+$dataPath = $basePath . '/surume-data';
+
+/**
+ * Include autoloader & dependencies
+ */
+require $basePath . '/vendor/autoload.php';
+require $dataPath . '/autorun/autorun.php5.polyfill';
+
+/**
+ *
+ */
+use Surume\Ipc\Socket\SocketListener;
+use Surume\Loop\Loop;
+use Surume\Loop\Model\StreamSelectLoop;
+use Surume\Transfer\Http\HttpServer;
+use Surume\Transfer\IoConnectionInterface;
+use Surume\Transfer\IoMessageInterface;
+use Surume\Transfer\IoServerComponentInterface;
+use Surume\Transfer\Socket\SocketServer;
+use Surume\Transfer\Websocket\WsServer;
+
+class WsTestComponent implements IoServerComponentInterface
+{
+    public function handleConnect(IoConnectionInterface $conn)
+    {
+//        var_dump('[' . $conn->getResourceId() . '] connect');
+    }
+
+    public function handleDisconnect(IoConnectionInterface $conn)
+    {
+//        var_dump('[' . $conn->getResourceId() . '] disconnect');
+    }
+
+    public function handleMessage(IoConnectionInterface $conn, IoMessageInterface $message)
+    {
+//        var_dump('[' . $conn->getResourceId() . '] message=' . $message->read());
+        $conn->send('answer');
+    }
+
+    public function handleError(IoConnectionInterface $conn, $ex)
+    {
+//        var_dump('[' . $conn->getResourceId() . '] error');
+    }
+}
+
+$loop = new Loop(
+    new StreamSelectLoop()
+);
+
+$io = new SocketServer(
+    new HttpServer(
+        new WsServer(
+            new WsTestComponent()
+        )
+    ),
+    new SocketListener(
+        'tcp://127.0.0.1:2060',
+        $loop
+    )
+);
+
+$loop->start();
